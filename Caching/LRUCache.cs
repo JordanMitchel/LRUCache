@@ -8,7 +8,6 @@ namespace Caching
         private readonly int _capacity;
         private readonly LinkedList<T> _cacheList;
         private readonly Dictionary<T, LRUDictKey<T>> _cacheDict;
-        private readonly ConcurrentDictionary<T, LRUDictKey<T>> _cacheCDict;
 
         public LRUCache(int capacity)
         {
