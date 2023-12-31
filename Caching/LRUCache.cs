@@ -7,100 +7,123 @@ namespace Caching
     {
         private readonly int _capacity;
         private readonly LinkedList<T> _cacheList;
-        private readonly Dictionary<T, LRUDictKey<T>> _cacheDict;
-        private readonly ConcurrentDictionary<T, LRUDictKey<T>> _cacheCDict;
+        private readonly ConcurrentDictionary<T, LRUDictValue<T>> _cacheDict;
+        private object _lock;
 
         public LRUCache(int capacity)
         {
             _capacity = capacity;
             _cacheList = new LinkedList<T>();
-            _cacheDict = new Dictionary<T, LRUDictKey<T>>(capacity);
+            _cacheDict = new ConcurrentDictionary<T, LRUDictValue<T>>(Environment.ProcessorCount,capacity);
         }
 
         public void add(T val)
         {
             //Add lock
-
-            if (_cacheDict.ContainsKey(val))
+            lock (_lock)
             {
-                var node = _cacheDict[val].node;
-                updateLocationOfVal(val, node);
-            }
-            else
-            {
-                var node = new LinkedListNode<T>(val);
-                if (_cacheDict.Count >= _capacity)
+                if (_cacheDict.ContainsKey(val))
                 {
-                    _cacheList.RemoveLast();
-                    var oldVal = _cacheList.Last.Value;
-                    _cacheDict.Remove(oldVal);
+                    var node = _cacheDict[val].node;
+                    updateLocationOfVal(val, node);
                 }
-                _cacheList.AddFirst(node);
-                _cacheDict.Add(val, new LRUDictKey<T>(val, node));
+                else
+                {
+                    var node = new LinkedListNode<T>(val);
+                    if (_cacheDict.Count >= _capacity)
+                    {
+                        var oldNode = _cacheList.Last;
+                        _cacheList.RemoveLast();
+                        var oldVal = _cacheList.Last.Value;
+                        var oldDictValue = new LRUDictValue<T>(oldVal, oldNode);
+                        _cacheDict.Remove(oldVal, out oldDictValue);
+                    }
+                    _cacheList.AddFirst(node);
+                    _cacheDict.GetOrAdd(val, new LRUDictValue<T>(val, node));
+                }
             }
-
         }
 
         public bool remove(T val)
         {
             //addLock
-            if (_cacheDict.ContainsKey(val))
+            lock (_lock)
             {
-                var node = _cacheDict[val].node;
-                _cacheList.Remove(node);
-                _cacheDict.Remove(val);
-                return true;
+                if (_cacheDict.ContainsKey(val))
+                {
+                    var nodeToRemove = _cacheDict[val].node;
+                    var DictValueToRemove = new LRUDictValue<T>(val, nodeToRemove);
+                    _cacheList.Remove(nodeToRemove);
+                    _cacheDict.Remove(val, out DictValueToRemove);
+                    return true;
+                }
+                return false;
             }
-            return false;
+
         }
 
         public (T, bool) peek(T val)
         {
             //add lock
-            if (_cacheDict.ContainsKey(val))
+            lock (_lock)
             {
-                var node = _cacheDict[val].node;
-                updateLocationOfVal(val, node);
-                return (val, true);
+                if (_cacheDict.ContainsKey(val))
+                {
+                    var node = _cacheDict[val].node;
+                    updateLocationOfVal(val, node);
+                    return (val, true);
+                }
+                else
+                {
+                    //Logging.Warn("Could not view value, does not exist");
+                    return (val, false);
+                }
             }
-            else
-            {
-                //Logging.Warn("Could not view value, does not exist");
-                return (val, false);
-            }
+
         }
 
         public void clearCache()
         {
             //add lock
-            _cacheDict.Clear();
-            _cacheList.Clear();
+            lock (_lock)
+            {
+                _cacheDict.Clear();
+                _cacheList.Clear();
+            }
+
         }
 
         public T? peakTop()
         {
             //add lock
-            return _cacheDict.Count != 0 ? _cacheList.FirstOrDefault() : default;
+            lock(_lock)
+                return _cacheDict.Count != 0 ? _cacheList.FirstOrDefault() : default;
         }
 
         public T? peakBottom()
         {
             //add lock
-            return _cacheDict.Count != 0 ? _cacheList.LastOrDefault() : default;
+            lock (_lock)
+                return _cacheDict.Count != 0 ? _cacheList.LastOrDefault() : default;
         }
 
         public int length()
         {
             //add lock
-            return _cacheDict.Count;
+            lock (_lock)
+                return _cacheDict.Count;
         }
 
         private void updateLocationOfVal(T? val, LinkedListNode<T> node)
         {
             //add lock
-            _cacheList.Remove(node);
-            _cacheList.AddFirst(node);
-            _cacheDict[val] = new LRUDictKey<T>(val, node);
+            lock (_lock)
+            {
+                _cacheList.Remove(node);
+                _cacheList.AddFirst(node);
+                _cacheDict[val] = new LRUDictValue<T>(val, node);
+            }
+
         }
     }
 }
