@@ -1,12 +1,12 @@
 ﻿namespace Caching;
-public class LRUDictValue<T>
+public class LRUDictValue<V>
 {
-    public LinkedListNode<T> node;
-    public T value;
+    public LinkedListNode<V> node;
+    public V cacheValue;
 
-    public LRUDictValue(T value, LinkedListNode<T> node)
+    public LRUDictValue(V value, LinkedListNode<V> node)
     {
-        this.value = value;
+        this.cacheValue = value;
         this.node = node;
     }
 }
