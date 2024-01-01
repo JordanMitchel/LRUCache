@@ -1,12 +1,12 @@
 ﻿namespace Caching
 {
-    internal class CacheRemoveItem<K, V>
+    public class CacheRemoveItem<K, V>
     {
-        private readonly bool _successfullyRemoved;
-        private readonly (K, V) _cacheItemRemoved;
-        public CacheRemoveItem((K, V) removedItem, bool successfullyRemoved = false)
+        public bool _successfullyRemoved { get; private set; }
+        public CacheItem<K,V> _cacheItemRemoved { get; private set; }
+        public CacheRemoveItem(K cacheKey,V cacheVal, bool successfullyRemoved = false)
         {
-            _cacheItemRemoved = removedItem;
+            _cacheItemRemoved = new CacheItem<K, V>(cacheKey,cacheVal);
             _successfullyRemoved = successfullyRemoved;
         }
     }

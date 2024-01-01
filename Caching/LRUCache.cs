@@ -17,11 +17,12 @@ namespace Caching
             _cacheDict = new ConcurrentDictionary<K, LRUDictItem<K,V>>(Environment.ProcessorCount,capacity);
         }
 
-        public void Add(K cacheKey, V cacheVal)
+        public CacheEvictedItem<K,V> Add(K cacheKey, V cacheVal)
         {
             //Add lock
             lock (_lock)
             {
+                LRUDictItem<K, V> evictedItem;
                 if (_cacheDict.ContainsKey(cacheKey))
                 {
                     var node = _cacheDict[cacheKey].CacheNode;
@@ -29,21 +30,30 @@ namespace Caching
                 }
                 else
                 {
-                    var node = new LinkedListNode<K>(cacheKey);
+
                     if (_cacheDict.Count >= _capacity)
                     {
-                        var oldNode = _cacheList.Last;
-                        var oldDictItem = new LRUDictItem<K,V>(cacheKey,cacheVal, oldNode!);
+                        var oldKey = _cacheList.Last!.Value;
                         _cacheList.RemoveLast();
-                        _cacheDict.Remove(cacheKey, out oldDictItem);
+                        _cacheDict.Remove(oldKey, out evictedItem!);
+                        var node = new LinkedListNode<K>(cacheKey);
+                        _cacheList.AddFirst(node);
+                        _cacheDict.GetOrAdd(cacheKey, new LRUDictItem<K, V>(cacheKey, cacheVal, node));
+                        return new CacheEvictedItem<K,V>(oldKey, evictedItem.CacheItem.CacheVal);
                     }
-                    _cacheList.AddFirst(node);
-                    _cacheDict.GetOrAdd(cacheKey, new LRUDictItem<K, V>(cacheKey,cacheVal, node));
+                    else
+                    {
+                        var node = new LinkedListNode<K>(cacheKey);
+                        _cacheList.AddFirst(node);
+                        _cacheDict.GetOrAdd(cacheKey, new LRUDictItem<K, V>(cacheKey, cacheVal, node));
+                    }
+
                 }
+                return new CacheEvictedItem<K,V>();
             }
         }
 
-        public bool Remove(K cacheKey)
+        public CacheRemoveItem<K,V> Remove(K cacheKey)
         {
             //addLock
             lock (_lock)
@@ -55,14 +65,14 @@ namespace Caching
                     var DictValueToRemove = new LRUDictItem<K,V>(cacheKey, cacheVal, nodeToRemove);
                     _cacheList.Remove(nodeToRemove);
                     _cacheDict.Remove(cacheKey, out DictValueToRemove);
-                    return true;
+                    return new CacheRemoveItem<K,V>(cacheKey,cacheVal,true);
                 }
-                return false;
+                return new CacheRemoveItem<K,V>(cacheKey, default, false);
             }
 
         }
 
-        public (CacheItem<K,V>, bool) Peek(K cacheKey)
+        public CacheItemView<K,V> Peek(K cacheKey)
         {
             //add lock
             lock (_lock)
@@ -72,13 +82,13 @@ namespace Caching
                     var cacheVal = _cacheDict[cacheKey].CacheItem.CacheVal;
                     var node = _cacheDict[cacheKey].CacheNode;
                     UpdateLocationOfVal(cacheKey,cacheVal, node);
-                    return (new CacheItem<K,V>(cacheKey, cacheVal), true);
+                    return new CacheItemView<K,V>(cacheKey, cacheVal, true);
                 }
                 else
                 {
                     //TODO Logging.Warn("Could not view value, does not exist");
 
-                    return (new CacheItem<K,V>(cacheKey, default!), false);
+                    return new CacheItemView<K,V>(cacheKey,default,false);
                 }
             }
 
@@ -95,7 +105,7 @@ namespace Caching
 
         }
 
-        public CacheItem<K,V>? PeakTop()
+        public CacheItemView<K,V> PeakTop()
         {
             //add lock
             lock (_lock)
@@ -103,15 +113,16 @@ namespace Caching
                 if (!_cacheDict.IsEmpty)
                 {
                     var topKey = _cacheList.FirstOrDefault();
-                    return _cacheDict[topKey!].CacheItem;
+                    var cacheItem = _cacheDict[topKey!].CacheItem;
+                    return new CacheItemView<K, V>(cacheItem.CacheKey, cacheItem.CacheVal);
                 }
-                return new CacheItem<K, V>(default!, default!);
+                return new CacheItemView<K, V>();
             }
 
 
         }
 
-        public CacheItem<K,V>? PeakBottom()
+        public CacheItemView<K,V> PeakBottom()
         {
             //add lock
             lock (_lock)
@@ -119,9 +130,10 @@ namespace Caching
                 if (!_cacheDict.IsEmpty)
                 {
                     var topKey = _cacheList.LastOrDefault();
-                    return _cacheDict[topKey!].CacheItem;
+                    var cacheItem = _cacheDict[topKey!].CacheItem;
+                    return new CacheItemView<K, V>(cacheItem.CacheKey, cacheItem.CacheVal);
                 }
-                return new CacheItem<K, V>(default!, default!);
+                return new CacheItemView<K, V>();
             }
         }
 

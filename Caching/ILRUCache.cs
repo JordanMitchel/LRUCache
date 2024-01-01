@@ -2,12 +2,12 @@
 {
     public interface ILRUCache<K,V>
     {
-        public void Add(K cacheKey,V cacheval);
-        public bool Remove(K cacheKey);
-        public (CacheItem<K, V>, bool) Peek(K cacheKey);
+        public CacheEvictedItem<K,V> Add(K cacheKey,V cacheval);
+        public CacheRemoveItem<K,V> Remove(K cacheKey);
+        public CacheItemView<K, V> Peek(K cacheKey);
         public void ClearCache();
-        public CacheItem<K,V>? PeakTop();
-        public CacheItem<K, V>? PeakBottom();
+        public CacheItemView<K,V> PeakTop();
+        public CacheItemView<K, V> PeakBottom();
         public int Length();
     }
 }
