@@ -18,3 +18,19 @@ At this time there is no internal singleton design pattern.
 - [ ] Enforce Singleton pattern internally
 - [x] Make LRU Cache thread safe to avoid race conditions
 - [x] Notify users of eviction on the event the cache is full and a new item has been added
+- [ ] Implement Controller to attempt manual tests of LRUCache
+- [ ] Implement UI to display LRUCache in grid
+- [ ] Display retrieval times of items in cache vs database
+
+## Methods implemented
+- [x] Peek Method
+- [x] PeekTop Method
+- [x] PeekBottom
+- [x] ClearCache
+- [x] Length
+- [x] Add
+- [x] Remove
+- [ ] RemoveBottom
+- [ ] RemoveTop
+- [ ] DisplayCache
+- [ ] ConvertToJson
