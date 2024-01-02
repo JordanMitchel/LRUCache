@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="../build/LRU_APP.props" />
+</Project>
