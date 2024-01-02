@@ -8,7 +8,7 @@ when you call the add Item the 6th time the return object will have variables as
 This LRUCache is intended to be used as a Singleton, it as assumed in your program.cs you would have implemenation similar to builder.Services.AddSingleton<LRUCache,ILRUCache>.\
 At this time there is no internal singleton design pattern. 
 
-## ToDos,
+## ToDos
 
 - [x] Implement Cache to store unique values
 - [x] Implement Cahce with unique key and value
